@@ -1,13 +1,10 @@
-# Backup Folder In-Use with Scheduler, 7-Zip, Powershell, and Robocopy
-
-Here, a small doc about how to backup a folder that is in-use with the help of scheduler, 7-zip, Powershell, and Robocopy.
 Already used max known for me compression, but can have many improvements
 
-## Step 1: Install 7-Zip
+# Step 1: Install 7-Zip
 
 The first step is to download and install 7-Zip from their official website.
 
-## Step 2: Run a PowerShell Script with this arguments
+# Step 2: Run a PowerShell Script with this arguments
 
 Create a PowerShell script that will create a backup of the folder that is in-use. Here's an example:
 

@@ -1,4 +1,3 @@
-```csharp
 using Newtonsoft.Json;
 using PostSharp.Aspects;
 using PostSharp.Serialization;
@@ -99,4 +98,3 @@ public class PropertyLoggingAspect : OnMethodBoundaryAspect
         return "Method";
     }
 }
-```
