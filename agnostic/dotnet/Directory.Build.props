@@ -1,0 +1,80 @@
+<Project>
+
+	<!-- Properties that affect all projects -->
+	<PropertyGroup>
+		<!-- Assembly Information -->
+		<Company>DEMO_COMPANY</Company>
+		<Product>$(MSBuildProjectName)</Product>
+
+		<Title>$(Product)</Title>
+		<Authors>$(Company)</Authors>
+		<AssemblyName>$(Product)</AssemblyName>
+		<AssemblyTitle>$(Product)</AssemblyTitle>
+		<Copyright>Copyright $([System.DateTime]::Now.ToString(yyyy))© $(Company). All rights reserved</Copyright>
+
+		<!-- Versions -->
+		<Version>$(Build_BuildNumber)</Version>
+		<FileVersion>$(Build_BuildNumber)</FileVersion>
+		<AssemblyVersion>$(Build_BuildNumber)</AssemblyVersion>
+
+		<!-- Build and Deployment -->
+		<WarningsAsErrors />
+		<Deterministic>True</Deterministic>
+		<NeutralLanguage>en</NeutralLanguage>
+
+		<AccelerateBuildsInVisualStudio>True</AccelerateBuildsInVisualStudio>
+		<CopyOutputSymbolsToPublishDirectory>False</CopyOutputSymbolsToPublishDirectory>
+
+		<AppendTargetFrameworkToOutputPath>False</AppendTargetFrameworkToOutputPath>
+		<AppendRuntimeIdentifierToOutputPath>False</AppendRuntimeIdentifierToOutputPath>
+
+		<IncludeAllContentForSelfExtract>false</IncludeAllContentForSelfExtract>
+		<IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+
+		<!-- Code Quality and Style -->
+		<Nullable>warnings</Nullable>
+		<LangVersion>latest</LangVersion>
+		<AnalysisLevel>preview</AnalysisLevel>
+		<EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
+		<!--<RootNamespace>$(MSBuildProjectName.Replace(" ", "_").Replace("$(Company).", ""))</RootNamespace>-->  <!-- For project with naming like DEMO_COMPANY.Infrastructure, DEMO_COMPANY.API, etc... -->
+	</PropertyGroup>
+
+	<!--Features switches-->
+	<ItemGroup>
+		<RuntimeHostConfigurationOption Include="FrontendResourceFeature.IsEnabled" Value="true" Trim="true" />
+	</ItemGroup>
+	
+	<!--Configuration dependent-->
+	<PropertyGroup Condition="'$(Configuration)'=='Debug'">
+		<Optimize>False</Optimize>
+		<DebugType>Full</DebugType>
+		<DebugSymbols>True</DebugSymbols>
+	</PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)'=='Release'">
+		<Optimize>True</Optimize>
+		<DebugType>None</DebugType>
+		<DebugSymbols>False</DebugSymbols>
+	</PropertyGroup>
+
+	<!-- Code Analysis -->
+	<!-- Only include analyzers for non-test projects -->
+	<ItemGroup Condition="!$(MSBuildProjectName.Contains('Test'))">
+		<PackageReference Include="Roslynator.Analyzers" Version="4.14.0">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="SonarAnalyzer.CSharp" Version="*">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="9.0.0">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="17.14.15">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+	</ItemGroup>
+
+</Project>
