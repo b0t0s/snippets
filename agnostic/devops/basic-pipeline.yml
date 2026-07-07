@@ -1,0 +1,82 @@
+name: $(major).$(minor).$(Rev:r)
+
+trigger:
+  batch: true
+  branches:
+    include:
+      - main
+      - dev
+  paths:
+    include:
+      - 'src/Backend/**'
+      - 'src/Hosting/**'
+      - 'devops/backend/**'
+
+pr:
+  branches:
+    include:
+      - main
+      - dev
+  paths:
+    include:
+      - 'src/Backend/**'
+      - 'src/Hosting/**'
+      - 'devops/backend/**'
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  - group: BackendVariables
+  - name: 'buildOptionalService'
+    value: $[eq(variables['BuildOptionalService'], 'true')]
+  - name: Configuration
+    value: 'Release'
+
+stages:
+  - stage: Build
+    displayName: 'Build & Test Services'
+    jobs:
+      - job: Build_Gateway
+        displayName: 'Build Gateway'
+        workspace:
+          clean: all
+        steps:
+          - template: templates/build-service.yml
+            parameters:
+              serviceName: 'gateway'
+              projectPath: 'src/Backend/Gateway/**/*.csproj'
+
+      - job: Build_MainApi
+        displayName: 'Build MainApi'
+        workspace:
+          clean: all
+        steps:
+          - template: templates/build-service.yml
+            parameters:
+              serviceName: 'mainApi'
+              projectPath: 'src/Backend/mainApi/**/*.csproj'
+
+      - job: Build_SecondaryApi
+        displayName: 'Build SecondaryApi'
+        workspace:
+          clean: all
+        steps:
+          - template: templates/build-service.yml
+            parameters:
+              serviceName: 'secondaryApi'
+              projectPath: 'src/Backend/SecondaryApi/**/*.csproj'
+
+      - job: Build_OptionalService
+        displayName: 'Build Optional Service'
+        condition: and(succeeded(), eq(variables.buildOptionalService, true))
+        workspace:
+          clean: all
+        steps:
+          - template: templates/build-container.yml
+            parameters:
+              serviceName: 'optional'
+              projectPath: 'src/Backend/OptionalApi/**/*.csproj'
+              imageRepository: 'optional'
+              buildContext: '$(Build.SourcesDirectory)/src/Backend/OptionalApi'
+              dockerfilePath: '$(Build.SourcesDirectory)/devops/backend/optional/Dockerfile'
