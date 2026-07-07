@@ -1,0 +1,117 @@
+parameters:
+  - name: serviceName
+    type: string
+  - name: projectPath
+    type: string
+
+steps:
+  - checkout: self
+    fetchTags: true
+
+  - task: UseDotNet@2
+    displayName: 'Install .NET 10'
+    inputs:
+      packageType: 'sdk'
+      version: '10.0.x'
+      includePreviewVersions: true
+
+  - task: NuGetToolInstaller@0
+    displayName: 'Set NuGet version'
+    inputs:
+      versionSpec: '>= 6.0.0'
+      checkLatest: true
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Restore dependencies'
+    inputs:
+      command: 'restore'
+      projects: '${{ parameters.projectPath }}'
+      feedsToUse: 'config'
+      nugetConfigPath: 'nuget.config'
+
+  - task: Bash@3
+    displayName: 'Update Feature Flags'
+    inputs:
+      targetType: 'inline'
+      script: |
+        BUILD_PROPS="Directory.Build.props"
+        
+        echo "Updating feature flags in $BUILD_PROPS"
+        
+        # Update PropertyGroup feature flags (both Debug and Release conditions)
+        sed -i "s|<DemoFeatureIsEnabled>.*</DemoFeatureIsEnabled>|<DemoFeatureIsEnabled>$(DemoFeatureIsEnabled)</DemoFeatureIsEnabled>|g" "$BUILD_PROPS"
+        sed -i 's|<RuntimeHostConfigurationOption Include="DemoFeature.IsEnabled" Value="[^"]*"|<RuntimeHostConfigurationOption Include="DemoFeature.IsEnabled" Value="$(DemoFeatureIsEnabled)"|g' "$BUILD_PROPS"
+        
+        echo "Feature flags updated successfully:"
+        echo "-- Demo Feature Enabled?: $(DemoFeatureIsEnabled)"
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Build ${{ parameters.serviceName }}'
+    inputs:
+      command: 'build'
+      projects: '${{ parameters.projectPath }}'
+      arguments: '--no-restore --configuration $(Configuration) -p:PackageAsSingleFile=true -p:SkipInvalidConfigurations=true'
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Run Unit Tests'
+    condition: ne(variables['NeedToTest'], 'false')
+    inputs:
+      command: 'test'
+      projects: 'src/Tests/Unit/Unit.csproj'
+      arguments: '--configuration $(Configuration)'
+
+  - task: DeleteFiles@1
+    displayName: 'Delete appsettings'
+    condition: ne(variables['NeedToDeleteAppsettings'], 'false')
+    inputs:
+      SourceFolder: .
+      Contents: '**/appsettings*.json'
+
+  - task: Bash@3
+    displayName: 'List all files'
+    inputs:
+      targetType: 'inline'
+      script: |
+        find . -type f | sort
+
+  - task: DotNetCoreCLI@2
+    displayName: 'Publish ${{ parameters.serviceName }}'
+    condition: ne(variables['PublishArtifact'], 'false')
+    inputs:
+      command: publish
+      projects: '${{ parameters.projectPath }}'
+      arguments: '--configuration $(Configuration) --no-restore --output $(Build.ArtifactStagingDirectory)'
+      zipAfterPublish: true
+      publishWebProjects: false
+
+  - bash: |
+      cd "$(Build.ArtifactStagingDirectory)"
+      mv *.zip ${{ parameters.serviceName }}.zip
+    displayName: 'Rename artifact to ${{ parameters.serviceName }}.zip'
+    condition: ne(variables['PublishArtifact'], 'false')
+
+  # - task: PublishBuildArtifacts@1
+  #   displayName: 'Publish Artifact'
+  #   condition: ne(variables['PublishArtifact'], 'false')
+  #   inputs:
+  #     PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+  #     ArtifactName: '${{ parameters.serviceName }}'
+  #     command: 'buildAndPush'
+  #     Dockerfile: '${{ parameters.dockerfilePath }}'
+  #     buildContext: '.'
+  #     tags: '$(Build.BuildNumber),latest'
+
+  - task: Bash@3
+    displayName: 'List all files'
+    inputs:
+      targetType: 'inline'
+      script: |
+        cd $(Build.ArtifactStagingDirectory)
+        find . -type f | sort
+
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish Artifact'
+    condition: ne(variables['PublishArtifact'], 'false')
+    inputs:
+      PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+      ArtifactName: '${{ parameters.serviceName }}'
