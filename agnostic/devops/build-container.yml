@@ -1,0 +1,55 @@
+parameters:
+  - name: serviceName
+    type: string
+  - name: projectPath
+    type: string
+  - name: dockerRegistryServiceConnection
+    type: string
+    default: 'acr-connection' 
+  - name: containerRegistry
+    type: string
+    default: 'demo.registry.io'
+  - name: imageRepository
+    type: string
+    default: '' 
+  - name: buildContext
+    type: string
+    default: '$(Build.SourcesDirectory)'
+  - name: dockerfilePath
+    type: string
+    default: '' 
+  - name: tag
+    type: string
+    default: '$(Build.BuildNumber)'
+
+steps:
+  - checkout: self
+    fetchTags: true
+
+  - task: Bash@3
+    displayName: 'List files'
+    inputs:
+      targetType: 'inline'
+      script: |
+        find . -type f | sort
+
+  - task: Docker@2
+    displayName: 'Build and push ${{ parameters.serviceName }} image to ACR'
+    inputs:
+      command: 'buildAndPush'
+      containerRegistry: '${{ parameters.dockerRegistryServiceConnection }}'
+      
+      ${{ if eq(parameters.imageRepository, '') }}:
+        repository: '${{ parameters.serviceName }}gateway'
+      ${{ if ne(parameters.imageRepository, '') }}:
+        repository: '${{ parameters.imageRepository }}'
+      
+      ${{ if eq(parameters.dockerfilePath, '') }}:
+        dockerfile: '$(Build.SourcesDirectory)/devops/backend/${{ parameters.serviceName }}/Dockerfile'
+      ${{ if ne(parameters.dockerfilePath, '') }}:
+        dockerfile: '${{ parameters.dockerfilePath }}'
+        
+      buildContext: '${{ parameters.buildContext }}'
+      tags: |
+        ${{ parameters.tag }}
+        latest
